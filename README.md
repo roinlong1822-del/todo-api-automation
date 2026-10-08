@@ -16,11 +16,11 @@ python -m api_server.app.seed                      # 初始化种子数据
 uvicorn api_server.app.main:app --reload --port 8000
 # 浏览器打开 http://127.0.0.1:8000/docs 可交互
 
-# 2) 跑测试
-cd api_test
-~/study/test/.venv/bin/python -m pytest -m "not network" -v      # 本地稳定用例
-~/study/test/.venv/bin/python -m pytest -v                       # 全量(含外网冒烟)
-~/study/test/.venv/bin/python -m pytest testcases/smoke -v       # 只跑冒烟
+# 2) 跑测试(在仓库根执行;配置 pytest.ini 在根目录)
+python -m pytest -m "not network" -v             # 本地稳定用例(CI 用这条)
+python -m pytest -v                              # 全量(含外网冒烟)
+python -m pytest api_test/testcases/smoke -v     # 只跑冒烟
+bash scripts/run_checks.sh                       # 一键验收(grep + 用例 + ruff)
 ```
 
 ---
