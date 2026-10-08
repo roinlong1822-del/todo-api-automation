@@ -1,0 +1,27 @@
+# ---- 隐私与本地配置(绝不提交)----
+.env
+.env.*
+!.env.example
+
+# ---- 本地运行产物 ----
+logs/
+*.log
+.log
+*.db
+*.sqlite3
+allure-results/
+allure-report/
+report/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+
+# ---- 本地实验与历史归档(不进公开仓库)----
+api_test/scratch/
+api_test/archive/
+
+# ---- 编辑器 / 系统 ----
+.idea/
+.vscode/
+.DS_Store
