@@ -3,7 +3,7 @@
 > 一个从零搭建的**接口自动化测试框架**(项目 B),配套一个**自建被测服务**(项目 A)。
 > 目的:演示"可控被测对象 + 分层框架 + 数据驱动 + 双端校验 + CI"的完整工程实践。
 
-**当前状态**:🟡 阶段 B 前 —— 封装层与管理骨架就绪,待做多环境配置 / yaml 数据驱动 / 业务接口层 / 双端校验 / Allure / CI。
+**当前状态**:🟡 **阶段 A 骨架完成**(被测服务契约冒烟 43/43 通过,DB 层待实现);阶段 B 待做多环境配置 / yaml 数据驱动 / 业务接口层 / 双端校验 / Allure / CI。
 
 ---
 
@@ -38,8 +38,8 @@ bash scripts/run_checks.sh                       # 一键验收(grep + 用例 + 
 | 依赖管理 | `pip` + `requirements.txt` | 不引入 poetry/uv(降低认知负担) |
 | 测试框架 | **pytest 9.1.1** + pytest-httpserver 1.1.5 | mock 第三方依赖用 |
 | HTTP 客户端 | **requests 2.34**(经自研 `HttpClient` 封装) | 用例层不直接用 requests |
-| 被测服务 | **FastAPI + Uvicorn** | 自动生成 `/docs` |
-| ORM / 数据库 | **SQLAlchemy + SQLite**(`api_server.db`) | 换 MySQL 只改 `DATABASE_URL` |
+| 被测服务 | **FastAPI 0.142.4 + Uvicorn 0.54.0** | 自动生成 `/docs`;依赖见 `api_server/requirements.txt` |
+| ORM / 数据库 | **SQLAlchemy 2.1.4 + SQLite**(`api_server.db`) | 换 MySQL 只改 `DATABASE_URL` |
 | 配置 | **PyYAML + `.env`** | 环境变量覆盖 yaml;`.env` 不入库 |
 | 日志 | 标准库 `logging` | 落文件 + 脱敏 |
 | 报告 | `allure-pytest` | 阶段 D 接入 |
@@ -134,7 +134,7 @@ bash scripts/run_checks.sh                       # 一键验收(grep + 用例 + 
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
-| A | 被测服务 `api_server`(6 接口 + SQLite + 种子 + 故障注入) | ⬜ 待开始 |
+| A | 被测服务 `api_server`(6 接口 + 鉴权 + 故障注入) | 🟡 **骨架完成(43/43 契约冒烟通过);DB 层待学员实现** |
 | B | 框架分层:config / data(yaml) / api 业务层 + 用例迁移 | 🟡 进行中(封装层已完成) |
 | C | logging + 断言封装 + **双端校验** + 数据清理 | ⬜ |
 | D | Allure 报告 | ⬜ |

@@ -3,6 +3,7 @@
 | 文件 | 用途 |
 |---|---|
 | `run_checks.sh` | 一键验收:检查用例是否"不碰裸路径/URL/超时" + 跑本地用例 + ruff 检查 |
+| `contract_smoke.py` | 被测服务**契约冒烟**:43 条断言逐条对照 `docs/API_SPEC.md`(需先启动 api_server) |
 
 ## 用法
 
