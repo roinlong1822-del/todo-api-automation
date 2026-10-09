@@ -74,7 +74,14 @@ def list_todos(
     排序:按 id 升序(保证分页结果稳定、可断言)。
     返回 (total, items)。
     """
-    raise NotImplementedError
+    query = db.query(Todo).filter(Todo.user_id == user_id, Todo.deleted == 0)
+    if keyword:
+        query = query.filter(Todo.title.like(f"%{keyword}%"))
+    if status:
+        query = query.filter(Todo.status == status)
+    total = query.count()
+    items = query.order_by(Todo.id.asc()).offset((page - 1) * size).limit(size).all()
+    return total, items
 
 
 def soft_delete_todo(db: Session, todo_id: int) -> bool:
