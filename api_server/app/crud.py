@@ -16,34 +16,50 @@ from api_server.app.models import Todo, User
 
 def get_user_by_username(db: Session, username: str) -> User | None:
     """按用户名查用户;不存在返回 None。"""
-    raise NotImplementedError
+    return db.query(User).filter(User.username == username).first()
 
 
 def get_user_by_id(db: Session, user_id: int) -> User | None:
     """按主键查用户。提示:db.get(User, user_id) 比 filter 更快(走主键缓存)。"""
-    raise NotImplementedError
+    return db.get(User, user_id)
 
 
 def reset_login_failures(db: Session, user: User) -> None:
     """登录成功:把 failed_attempts 归零、解除 locked,并 commit。"""
-    raise NotImplementedError
+    login_user = db.get(User, user.id)
+    if login_user:
+        login_user.failed_attempts = 0
+        login_user.locked = False
+        db.commit()
+    return None
 
 
 def record_login_failure(db: Session, user: User, max_attempts: int = 3) -> bool:
     """登录失败:failed_attempts += 1;达到 max_attempts 就置 locked=True。
     返回:是否因此被锁定。commit 由本函数负责。
     """
-    raise NotImplementedError
+    login_user = db.get(User, user.id)
+    if login_user:
+        login_user.failed_attempts += 1
+        if login_user.failed_attempts >= max_attempts:
+            login_user.locked = True
+        db.commit()
+        return login_user.locked
+    return False
 
 
 def create_todo(db: Session, user_id: int, title: str, priority: int = 1) -> Todo:
     """插入一条待办:status="pending"、deleted=0;commit 后 refresh 拿到自增 id。"""
-    raise NotImplementedError
+    add_todo = Todo(user_id=user_id, title=title, priority=priority)
+    db.add(add_todo)
+    db.commit()
+    db.refresh(add_todo)
+    return add_todo
 
 
 def get_todo(db: Session, todo_id: int) -> Todo | None:
     """按 id 查未删除的待办(★ 必须带 deleted == 0,否则软删除用例会失败)。"""
-    raise NotImplementedError
+    return db.query(Todo).filter(Todo.id == todo_id, Todo.deleted == 0).first()
 
 
 def list_todos(
@@ -63,7 +79,13 @@ def list_todos(
 
 def soft_delete_todo(db: Session, todo_id: int) -> bool:
     """软删除:把 deleted 置 1;记录不存在或已删除返回 False。"""
-    raise NotImplementedError
+    delete_todo = db.query(Todo).filter(Todo.id == todo_id, Todo.deleted == 0).first()
+    if delete_todo:
+        delete_todo.deleted = 1
+        db.commit()
+        db.refresh(delete_todo)
+        return True
+    return False
 
 
 def count_by_status(db: Session, user_id: int) -> dict[str, int]:
