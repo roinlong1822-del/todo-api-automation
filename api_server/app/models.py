@@ -1,48 +1,40 @@
-"""ORM 模型(★ 任务 2:你来实现)。
+"""ORM 模型:把 Python 类映射成数据库表。
 
-要求两张表(字段名/类型必须一致,契约与用例都按这个断言):
-
-users
-  id               主键
-  username         String(50) 唯一 + 索引
-  password_hash    String(255)
-  failed_attempts  Integer 默认 0
-  locked           Boolean 默认 False
-
-todos
-  id         主键
-  user_id    外键 → users.id,索引
-  title      String(100)
-  priority   Integer 默认 1
-  status     String(10) 默认 "pending"    # pending / done
-  deleted    Integer 默认 0,索引          # ★ 软删除标记:查询必须过滤 deleted == 0
-  created_at  DateTime 默认当前时间(UTC)
-
-最小知识(SQLAlchemy 2.0 风格):
-    from sqlalchemy import Integer, String, Boolean, DateTime, ForeignKey
-    from sqlalchemy.orm import Mapped, mapped_column
-    class X(Base):
-        __tablename__ = "x"
-        id: Mapped[int] = mapped_column(Integer, primary_key=True)
-
-自测:
-    python -c "from api_server.app.models import User, Todo; print(User.__tablename__, Todo.__tablename__)"
+关键概念:
+- `__tablename__`      : 对应数据库里的表名
+- `Mapped[int]`        : 类型注解(SQLAlchemy 2.0 用它推断列类型);`Mapped[str]`/`Mapped[bool]`/`Mapped[datetime]`
+- `mapped_column(...)` : 列的定义(类型、主键、默认值、索引、外键)
+- 只要类继承 Base 并设置了 __tablename__,这张表就自动登记进 Base.metadata
 """
+
+from datetime import datetime, timezone
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 from api_server.app.database import Base
 
 
 class User(Base):
-    """用户表。"""
-
     __tablename__ = "users"
 
-    # TODO(任务 2):定义 5 个字段
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)          # 主键(自增)
+    username: Mapped[str] = mapped_column(String(50), unique=True, index=True)  # 唯一 + 索引
+    password_hash: Mapped[str] = mapped_column(String(255))             # PBKDF2 散列,不存明文
+    failed_attempts: Mapped[int] = mapped_column(Integer, default=0)    # 连续失败次数
+    locked: Mapped[bool] = mapped_column(Boolean, default=False)        # 是否锁定
 
 
 class Todo(Base):
-    """待办表(软删除:deleted=1 表示已删除)。"""
-
     __tablename__ = "todos"
 
-    # TODO(任务 2):定义 7 个字段
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)  # 属于谁
+    title: Mapped[str] = mapped_column(String(100))
+    priority: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(10), default="pending")   # pending / done
+    # ★ 软删除标记:0=未删除,1=已删除。所有查询都要带 deleted == 0
+    deleted: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)             # 插入时自动填
+    )

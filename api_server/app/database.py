@@ -1,48 +1,51 @@
-"""数据库连接层(★ 任务 1:你来实现)。
+"""数据库连接层。
 
-必须提供(名字固定,路由层与 seed 已按此调用):
-    DATABASE_URL : 从环境变量读,默认 "sqlite:///./api_server.db"
-    Base         : DeclarativeBase 子类,供 models 继承(已给出,别改名)
-    engine       : create_engine(DATABASE_URL, ...)
-                   sqlite 需要 connect_args={"check_same_thread": False}
-    SessionLocal : sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    get_db()     : FastAPI 依赖,产出一个 Session,请求结束务必 close
-    init_db()    : 建表(create_all);表已存在时不会重复建
+★ 四个核心对象(名字要记住,项目里到处用):
+    Base         : 所有 ORM 模型的父类。继承它 = 把这张表"登记"到 Base.metadata
+    Base.metadata: 登记簿(表名 → Table 对象 的字典),未导入模型的表不在里面
+    engine       : 连接引擎(管连接池、SQL 方言)。create_all 和 Session 都要用它
+    SessionLocal : 会话工厂。调它得到 Session = 一次数据库对话(查询 + 事务)
 
-最小知识(这几行就够跑起来):
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import DeclarativeBase, sessionmaker
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-自测(改完数据库层就能跑):
-    python -c "from api_server.app.database import init_db, Base; init_db(); print(sorted(Base.metadata.tables))"
-    # 期望输出 ['todos', 'users']
+关系图:
+    模型类 ──继承──▶ Base ──登记到──▶ Base.metadata ──create_all(engine)──▶ 数据库中的表
+                                                              ▲
+    SessionLocal() ──▶ Session ──用 engine 连接───────────────┘  读写这些表
 """
 
 import os
 
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./api_server.db")
 
+# ① 引擎:换 MySQL 只改 DATABASE_URL,代码不动
+engine = create_engine(
+    DATABASE_URL,
+    # sqlite 特有:默认禁止连接跨线程使用,而 uvicorn 是多线程的
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+)
+
+# ② 会话工厂:每个请求/每个测试用例从这里取一个 Session
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
 
 class Base(DeclarativeBase):
-    """所有 ORM 模型的基类(已给出)。"""
+    """所有 ORM 模型的基类(类体里不用写任何东西,继承它就够了)。"""
 
 
-# ------------------------------------------------------------------
-# TODO(任务 1):把下面三个补完
-# ------------------------------------------------------------------
-engine = None          # ← 替换为 create_engine(...)
-SessionLocal = None    # ← 替换为 sessionmaker(...)
-
-
+# ③ FastAPI 依赖:请求进来给一个 Session,请求结束关掉
 def get_db():
-    """FastAPI 依赖:每个请求一个 Session。提示:用 yield + finally close。"""
-    raise NotImplementedError("实现 get_db():yield Session,finally 里 close")
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
+# ④ 建表:把 Base.metadata 里登记的所有表建到数据库
 def init_db() -> None:
-    """建表。提示:先 `from api_server.app import models` 注册模型,再 create_all。"""
-    raise NotImplementedError("实现 init_db()")
+    # ★ 必须先导入 models,否则表还没被登记,create_all 建出来是空的
+    from api_server.app import models  # noqa: F401
+
+    Base.metadata.create_all(bind=engine)
