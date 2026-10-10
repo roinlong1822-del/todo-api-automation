@@ -102,4 +102,10 @@ def count_by_status(db: Session, user_id: int) -> dict[str, int]:
     提示:`from sqlalchemy import func` + `db.query(Todo.status, func.count(Todo.id)).group_by(Todo.status)`
     完成后在 routers/todos.py 加一个 `GET /todos/stats` 路由把它暴露出来(自己写路由,3 行)。
     """
-    raise NotImplementedError
+    res = dict()
+    # 统计各状态数量
+    from sqlalchemy import func
+    query = db.query(Todo.status, func.count(Todo.id)).filter(Todo.user_id == user_id, Todo.deleted == 0).group_by(Todo.status)
+    for status, count in query:
+        res[status] = count
+    return res
