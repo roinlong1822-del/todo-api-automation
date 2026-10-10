@@ -19,21 +19,20 @@ import sys
 
 from sqlalchemy.orm import Session
 
-from api_server.app.database import init_db
-from api_server.app.database import get_db
+from api_server.app.database import init_db, SessionLocal
 from api_server.app import auth
-from api_server.app.models import User
+from api_server.app.models import User, Todo
 from api_server.app.crud import create_todo
 
 
 def seed() -> None:
     init_db()
     # TODO(任务 4):插入 3 个用户 + 4 条待办(幂等)
-    db = get_db()
+    db = SessionLocal()
     users = [
-        {"username": "tester", "password": auth.hash_password("Passw0rd!"), "locked": False},
-        {"username": "locked_user", "password": auth.hash_password("Passw0rd!"), "locked": True},
-        {"username": "other", "password": auth.hash_password("Passw0rd!"), "locked": False},
+        {"username": "tester", "password_hash": auth.hash_password("Passw0rd!"), "locked": False},
+        {"username": "locked_user", "password_hash": auth.hash_password("Passw0rd!"), "locked": True},
+        {"username": "other", "password_hash": auth.hash_password("Passw0rd!"), "locked": False},
     ]
     def create_user_if_not_exists(db: Session, user):
         existing_user = db.query(User).filter(User.username == user["username"]).first()
@@ -42,19 +41,30 @@ def seed() -> None:
             db.add(new_user)
             db.commit()
             db.refresh(new_user)
-            # 添加 todo
-            if new_user.username == "tester":
-                create_todo(db, new_user.id, "tester todo 1")
-                create_todo(db, new_user.id, "tester todo 2")
-                todo_done = create_todo(db, new_user.id, "tester todo 3")
-                todo_done.status = "done"
-                db.commit()
-                db.refresh(todo_done)
-            if new_user.username == "other":
-                create_todo(db, new_user.id, "other todo 1")
+            return new_user
+        return existing_user
+            # # 添加 todo
+            # if new_user.username == "tester":
+            #     create_todo(db, new_user.id, "tester todo 1")
+            #     create_todo(db, new_user.id, "tester todo 2")
+            #     todo_done = create_todo(db, new_user.id, "tester todo 3")
+            #     todo_done.status = "done"
+            #     db.commit()
+            #     db.refresh(todo_done)
+            # if new_user.username == "other":
+            #     create_todo(db, new_user.id, "other todo 1")
 
     for user in users:
-        create_user_if_not_exists(db, user)
+        db_user = create_user_if_not_exists(db, user)
+        # 添加 todo
+        if db_user.username == "tester":
+            for title, status in [("tester todo 1", "pending"), ("测试待办 2", "pending"), ("tester todo 3", "done")]:
+                existing_todo = db.query(Todo).filter(Todo.user_id == db_user.id, Todo.title == title).first()
+                if not existing_todo:
+                    new_todo = create_todo(db, db_user.id, title)
+                    new_todo.status = status
+                    db.commit()
+                    db.refresh(new_todo)
 
 
 if __name__ == "__main__":
