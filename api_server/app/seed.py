@@ -17,13 +17,44 @@
 
 import sys
 
+from sqlalchemy.orm import Session
+
 from api_server.app.database import init_db
+from api_server.app.database import get_db
+from api_server.app import auth
+from api_server.app.models import User
+from api_server.app.crud import create_todo
 
 
 def seed() -> None:
     init_db()
     # TODO(任务 4):插入 3 个用户 + 4 条待办(幂等)
-    raise NotImplementedError("实现 seed():建表 → 插用户 → 插待办,重复执行不重复插入")
+    db = get_db()
+    users = [
+        {"username": "tester", "password": auth.hash_password("Passw0rd!"), "locked": False},
+        {"username": "locked_user", "password": auth.hash_password("Passw0rd!"), "locked": True},
+        {"username": "other", "password": auth.hash_password("Passw0rd!"), "locked": False},
+    ]
+    def create_user_if_not_exists(db: Session, user):
+        existing_user = db.query(User).filter(User.username == user["username"]).first()
+        if not existing_user:
+            new_user = User(**user)
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
+            # 添加 todo
+            if new_user.username == "tester":
+                create_todo(db, new_user.id, "tester todo 1")
+                create_todo(db, new_user.id, "tester todo 2")
+                todo_done = create_todo(db, new_user.id, "tester todo 3")
+                todo_done.status = "done"
+                db.commit()
+                db.refresh(todo_done)
+            if new_user.username == "other":
+                create_todo(db, new_user.id, "other todo 1")
+
+    for user in users:
+        create_user_if_not_exists(db, user)
 
 
 if __name__ == "__main__":

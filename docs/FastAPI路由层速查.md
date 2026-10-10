@@ -102,3 +102,36 @@ def get_db():
   status : {"enum": ["pending","done"], "nullable"}
   ```
   → 所以**约束写在 Query 上就等于同时做了三件事**:校验、文档、示例。
+
+---
+
+## 7. 陷阱:`get_db()` 在脚本里不能直接用(生成器)
+
+`get_db` 因为带 `yield`,是**生成器函数**;直接调用得到的是**生成器对象**,不是 Session:
+
+```
+type(get_db)    : function
+type(get_db())  : generator      ← 不是 Session!
+它有 query 方法吗: False          ← 于是报 'generator' object has no attribute 'query'
+next(get_db())  : Session        ← 这样才拿到 Session
+```
+
+**为什么路由里能写 `db: Session = Depends(get_db)`**:FastAPI 的依赖机制帮你做了三件事 ——
+① 调用 `get_db()` 拿生成器 ② `next()` 取出 Session 注入 ③ 请求结束后 `close()`,从而触发 `finally: db.close()`。
+
+**脚本/CLI 里的正确写法**(如 `seed.py`):
+```python
+from api_server.app.database import SessionLocal
+
+db = SessionLocal()
+try:
+    ...
+finally:
+    db.close()
+```
+
+**判断技巧**:
+```python
+import inspect
+inspect.isgeneratorfunction(get_db)   # True → 说明它靠 yield 产出值
+```
