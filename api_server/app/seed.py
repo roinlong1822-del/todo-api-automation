@@ -65,6 +65,11 @@ def seed() -> None:
                     new_todo.status = status
                     db.commit()
                     db.refresh(new_todo)
+        if db_user.username == "other":
+            title = "other todo 1"
+            existing_todo = db.query(Todo).filter(Todo.user_id == db_user.id, Todo.title == title).first()
+            if not existing_todo:
+                create_todo(db, db_user.id, title)
 
 
 if __name__ == "__main__":

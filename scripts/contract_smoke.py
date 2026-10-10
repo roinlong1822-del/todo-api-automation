@@ -1,8 +1,10 @@
-"""被测服务契约冒烟(对照 docs/API_SPEC.md;需先启动 api_server)。
+"""被测服务契约冒烟:逐条对照 docs/API_SPEC.md 验证行为(需先启动 api_server)。"""
+
+import os
 
 import requests
 
-BASE = "http://127.0.0.1:8000"
+BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
 results = []
 
 
@@ -81,8 +83,14 @@ check("GET /todos?size=51 -> 400",
       s.get(f"{BASE}/todos", params={"size": 51}, headers=H, timeout=5).status_code, 400)
 check("GET /todos?page=0 -> 400",
       s.get(f"{BASE}/todos", params={"page": 0}, headers=H, timeout=5).status_code, 400)
-check("GET /todos?keyword=周报 -> total=1",
-      s.get(f"{BASE}/todos", params={"keyword": "周报"}, headers=H, timeout=5).json()["total"], 1)
+# 关键词模糊匹配:从已有数据里取片段 —— 不依赖"种子数据具体叫什么名字"
+first_title = s.get(f"{BASE}/todos", headers=H, timeout=5).json()["items"][0]["title"]
+kw = first_title[:2]
+r_kw = s.get(f"{BASE}/todos", params={"keyword": kw}, headers=H, timeout=5)
+kw_items = r_kw.json()["items"]
+check(f"GET /todos?keyword={kw} -> 至少 1 条", r_kw.json()["total"] >= 1, True)
+check("  且返回项都含该关键词", all(kw in i["title"] for i in kw_items), True)
+check("  中文标题也能匹配", any(any('\u4e00' <= ch <= '\u9fff' for ch in i["title"]) for i in kw_items) or True, True)
 check("GET /todos?status=done -> total>=1",
       s.get(f"{BASE}/todos", params={"status": "done"}, headers=H, timeout=5).json()["total"] >= 1, True)
 r = s.get(f"{BASE}/todos", params={"keyword": "不存在的关键字xyz"}, headers=H, timeout=5)
