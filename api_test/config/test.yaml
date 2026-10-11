@@ -1,0 +1,5 @@
+# 测试环境:base_url、超时、是否启用 mock
+
+base_url: "http://127.0.0.1:8000"
+timeout: 5
+mock: true
