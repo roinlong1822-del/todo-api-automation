@@ -3,6 +3,12 @@
 .env.*
 !.env.example
 
+# ---- 虚拟环境(绝不用提交:本机在 ~/study/test/.venv,防呆防误建)----
+.venv/
+venv/
+ENV/
+env/
+
 # ---- 本地运行产物 ----
 logs/
 *.log

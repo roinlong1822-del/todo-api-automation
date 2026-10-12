@@ -5,7 +5,6 @@ import pytest
 from werkzeug import Response
 
 from data.sample_data import EXISTING_TODO_IDS, TODO_1, TODO_2, TODOS_1
-from utils.http_client import HttpClient
 
 
 @pytest.fixture
