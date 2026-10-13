@@ -7,7 +7,7 @@
 - 只要类继承 Base 并设置了 __tablename__,这张表就自动登记进 Base.metadata
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -36,5 +36,5 @@ class Todo(Base):
     # ★ 软删除标记:0=未删除,1=已删除。所有查询都要带 deleted == 0
     deleted: Mapped[int] = mapped_column(Integer, default=0, index=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)             # 插入时自动填
+        DateTime, default=lambda: datetime.now(UTC)             # 插入时自动填
     )

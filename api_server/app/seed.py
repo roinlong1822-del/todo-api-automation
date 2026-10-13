@@ -19,10 +19,10 @@ import sys
 
 from sqlalchemy.orm import Session
 
-from api_server.app.database import init_db, SessionLocal
 from api_server.app import auth
-from api_server.app.models import User, Todo
 from api_server.app.crud import create_todo
+from api_server.app.database import SessionLocal, init_db
+from api_server.app.models import Todo, User
 
 
 def seed() -> None:

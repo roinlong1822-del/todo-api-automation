@@ -40,7 +40,9 @@ def list_todos(
     current_user=Depends(get_current_user),
 ):
     total, items = crud.list_todos(db, current_user.id, page, size, keyword, status)
-    return TodoListOut(total=total, page=page, size=size, items=[TodoOut.model_validate(i) for i in items])
+    return TodoListOut(
+        total=total, page=page, size=size, items=[TodoOut.model_validate(i) for i in items]
+    )
 
 
 @router.get("/todos/{todo_id}", response_model=TodoOut, summary="查询单条待办")
@@ -57,20 +59,6 @@ def get_todo(
     return todo
 
 
-@router.get("/todos/{todo_id}/status", response_model=str, summary="查询单条待办状态")
-def get_todo_status(
-    todo_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    todo = crud.get_todo(db, todo_id)
-    if todo is None:
-        raise not_found(f"待办 {todo_id} 不存在")
-    if todo.user_id != current_user.id:
-        raise forbidden("不能访问他人的待办")
-    return todo.status
-
-
 @router.delete("/todos/{todo_id}", status_code=204, summary="删除待办(软删除)")
 def delete_todo(
     todo_id: int,
@@ -85,7 +73,7 @@ def delete_todo(
         raise forbidden("不能删除他人的待办")
 
     if write_fail_injected(request):
-        return Response(status_code=204)          # 假装删成功,其实没写库
+        return Response(status_code=204)  # 假装删成功,其实没写库
 
     crud.soft_delete_todo(db, todo_id)
     return Response(status_code=204)

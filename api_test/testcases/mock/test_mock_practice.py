@@ -103,5 +103,3 @@ def test_smoke_remote_contract(remote_api):
     required = {"userId", "id", "title", "completed"}
     missing = required - set(body)
     assert not missing, f"响应缺少字段: {missing}"
-
-

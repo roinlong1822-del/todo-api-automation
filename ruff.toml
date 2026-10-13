@@ -1,0 +1,45 @@
+# ruff 配置:静态检查 + 格式化(命名规范由 N 规则自动强制)
+# 用法(在仓库根执行):ruff check . / ruff check --fix . / ruff format .
+#
+# ⚠️ 这份配置必须放在【仓库根】:ruff 只按文件路径向上找配置。
+#    之前它只在 api_test/ 下,导致 api_server/ 的文件"裸奔" —— 回落到工具默认规则
+#    (415 条,随版本/机器而变),同一份代码在不同机器上检查结果不同,CI 无法复现。
+
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = [
+    "E",   # pycodestyle 错误(缩进、空白、行太长等)
+    "W",   # pycodestyle 警告
+    "F",   # pyflakes(未使用的导入/变量、未定义名字)
+    "I",   # isort:import 排序
+    "N",   # pep8-naming:类名大驼峰、函数变量小写下划线、常量全大写
+    "UP",  # pyupgrade:用新语法替代旧写法
+    "B",   # flake8-bugbear:常见坑(可变默认参数等)
+    "SIM", # flake8-simplify:可简化的写法
+]
+ignore = [
+    "E501",  # 行长度交给 ruff format 处理,不单独报错
+]
+
+[lint.flake8-bugbear]
+# FastAPI 依赖注入的惯用写法:`db: Session = Depends(get_db)` 会触发 B008
+# (函数调用出现在默认参数里)。这不是 bug,是框架约定 —— 所以只对这几个**框架函数**
+# 放行,而不是整体 ignore B008(否则真正的可变默认参数坑也会被一起放过)。
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Header",
+    "fastapi.Path",
+    "fastapi.Body",
+]
+
+[lint.per-file-ignores]
+# 测试文件允许:长函数名、断言里的魔法数字
+"test_*.py" = ["N802", "PLR2004"]
+
+[lint.isort]
+# api_test/ 下的 config/data/utils/api 是【本项目】的包(通过 pytest.ini 的 pythonpath 引入),
+# 不声明的话 ruff 会把它们当第三方包,和 pytest/requests 混成一组 —— 分层在 import 里就看不出来了。
+known-first-party = ["api_test", "api_server", "api", "config", "data", "utils"]
