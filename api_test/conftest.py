@@ -9,7 +9,10 @@
 
 import pytest
 
+from api.auth_api import AuthApi
+from api.todo_api import TodoApi
 from config.loader import load_config
+from data.accounts import TESTER
 from data.sample_data import REMOTE
 from utils.http_client import HttpClient
 
@@ -36,3 +39,29 @@ def mock_api(httpserver):
 def remote_api():
     """真实外网通道:只给 @pytest.mark.network 的契约冒烟用例使用。"""
     return HttpClient(REMOTE, timeout=5)
+
+
+@pytest.fixture(scope="session")
+def auth_api(server_api) -> AuthApi:
+    """未鉴权通道:登录接口用它。"""
+    return AuthApi(server_api)
+
+
+@pytest.fixture(scope="session")
+def token(auth_api) -> str:
+    """tester 的 token,整个会话只登录一次。"""
+    r = auth_api.login(TESTER["username"], TESTER["password"])
+    assert r.status_code == 200, f"登录失败,后续用例无法进行: {r.status_code} {r.text}"
+    return r.json()["token"]
+
+
+@pytest.fixture(scope="session")
+def todo_api(server_api, token) -> TodoApi:
+    """已鉴权通道:绝大多数待办用例用它。"""
+    return TodoApi(server_api, token)
+
+
+@pytest.fixture
+def anon_todo_api(server_api) -> TodoApi:
+    """未鉴权通道:401 用例用它。"""
+    return TodoApi(server_api, None)

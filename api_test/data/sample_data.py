@@ -15,7 +15,7 @@ TODO_2 = {"userId": 1, "id": 2, "title": "delectus aut autem", "completed": Fals
 TODO_LIST = [TODO_1, TODO_2]
 
 # ---- 模拟服务端规则 ----
-EXISTING_TODO_IDS = {1, 2}          # 只有这两个 id 存在,其余返回 404
+EXISTING_TODO_IDS = {1, 2}  # 只有这两个 id 存在,其余返回 404
 
 # ---- 环境 ----
 REMOTE = "https://jsonplaceholder.typicode.com"
