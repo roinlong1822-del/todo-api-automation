@@ -43,7 +43,7 @@ def remote_api():
 
 @pytest.fixture(scope="session")
 def auth_api(server_api) -> AuthApi:
-    """未鉴权通道:登录接口用它。"""
+    """**未鉴权**通道:登录接口用它(`/login` 是唯一不需要凭证的认证接口)。"""
     return AuthApi(server_api)
 
 
@@ -53,6 +53,16 @@ def token(auth_api) -> str:
     r = auth_api.login(TESTER["username"], TESTER["password"])
     assert r.status_code == 200, f"登录失败,后续用例无法进行: {r.status_code} {r.text}"
     return r.json()["token"]
+
+
+@pytest.fixture(scope="session")
+def authed_auth_api(server_api, token) -> AuthApi:
+    """**已鉴权**通道:`/users/me` 的成功用例用它。
+
+    它和 `auth_api` 的区别就是"带不带凭证":`auth_api` 调 `me()` 必然 401。
+    想验"带着 token 能查到自己",用这个夹具 —— **不要在用例里给夹具赋 token**。
+    """
+    return AuthApi(server_api, token)
 
 
 @pytest.fixture(scope="session")

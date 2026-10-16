@@ -58,13 +58,13 @@
 
 **请求**:`{"title": "买牛奶", "priority": 1}`(priority 可选,默认 1)
 
-| 情况 | HTTP | 响应 |
-|---|---|---|
-| 成功 | **201** | `{"id": 7, "title": "买牛奶", "priority": 1, "status": "pending"}` |
-| `title` 缺失/为空 | 400 | `INVALID_PARAM` |
-| `title` 长度 > 100 | 400 | `INVALID_PARAM` |
-| `priority` 不在 1–3 | 400 | `INVALID_PARAM` |
-| 未鉴权 | 401 | `UNAUTHORIZED` |
+| 情况                | HTTP    | 响应                                                              |
+| ----------------- | ------- | --------------------------------------------------------------- |
+| 成功                | **201** | `{"id": 7, "title": "买牛奶", "priority": 1, "status": "pending"}` |
+| `title` 缺失/为空     | 400     | `INVALID_PARAM`                                                 |
+| `title` 长度 > 100  | 400     | `INVALID_PARAM`                                                 |
+| `priority` 不在 1–3 | 400     | `INVALID_PARAM`                                                 |
+| 未鉴权               | 401     | `UNAUTHORIZED`                                                  |
 
 **边界值**(测试用):`title` 长度 **1 / 100 通过,0 / 101 拒绝**;`priority` **1、3 通过,0、4 拒绝**。
 
@@ -83,12 +83,12 @@
 
 **响应**:`{"total": 42, "page": 1, "size": 10, "items": [ {...}, ... ]}`
 
-| 情况 | HTTP | 响应 |
-|---|---|---|
-| 成功 | 200 | 上述结构 |
-| `size > 50` | 400 | `INVALID_PARAM` |
-| `page < 1` | 400 | `INVALID_PARAM` |
-| 无匹配结果 | 200 | `{"total": 0, "items": []}`(**不是 404**) |
+| 情况          | HTTP | 响应                                      |
+| ----------- | ---- | --------------------------------------- |
+| 成功          | 200  | 上述结构                                    |
+| `size > 50` | 400  | `INVALID_PARAM`                         |
+| `page < 1`  | 400  | `INVALID_PARAM`                         |
+| 无匹配结果       | 200  | `{"total": 0, "items": []}`(**不是 404**) |
 
 **排序约定**:按 `id` 升序,保证分页结果稳定可断言。
 

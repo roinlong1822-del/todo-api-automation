@@ -15,11 +15,25 @@
 |---|---|---|
 | `server_api` | 指向 `api_server` 的 `HttpClient`(地址来自 `config/`) | 底层通道,业务用例一般不直接用 |
 | `app_config` | 当前环境配置(`base_url`/`timeout`/`mock`/`env`) | 需要感知环境时 |
-| `auth_api` | 未鉴权的 `AuthApi` | 登录接口 |
-| `token` | `tester` 账号的 token(session 级,只登录一次) | —— |
+| `auth_api` | **未鉴权**的 `AuthApi`(`/login` 不需要凭证) | 登录接口;未鉴权 `me()` → 401 |
+| `authed_auth_api` | **已鉴权**的 `AuthApi` | `/users/me` 的成功用例 |
+| `token` | `tester` 账号的 token(session 级,只登录一次) | 需要 token 字符串本身时 |
 | `todo_api` | **已鉴权**的 `TodoApi` | 绝大多数待办用例 |
 | `anon_todo_api` | **未鉴权**的 `TodoApi` | 401 用例 |
 | `inject_api` | 带 `X-Inject-Bug: write_fail` 的 `TodoApi` | 双端校验 / 故障注入 |
+
+> **别在用例里改夹具的状态**(比如 `auth_api.token = ...`):夹具是 session 级的,改了会污染**后面所有用例** —— 一起跑红、单独跑绿,典型的顺序依赖。
+
+## 错误码在哪(最常问)
+
+```
+r.status_code            # HTTP 层:401
+r.headers                # 传输层元数据:content-type / date …… 里面【没有】业务码
+r.json()["code"]         # body 层:业务错误码 ← 断言这个
+r.json()["message"]      # 只用于排查,【不要断言文案】(它会改)
+```
+
+契约见 `docs/API_SPEC.md` §0:`{"code": "<机器可读>", "message": "<人类可读>"}`。
 
 ## 待办数据(种子,见 `docs/API_SPEC.md` §8)
 
