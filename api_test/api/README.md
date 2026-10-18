@@ -195,24 +195,36 @@ token 早就是这么挂的 —— **token 挂哪,注入头就挂哪**。用例�
 
 **结构类**
 
-- [ ] `api/` 下只有 `auth_api.py` / `todo_api.py` / `__init__.py` / `README.md`
+- [ ] `api/` 下只有 `auth_api.py` / `todo_api.py` / `__init__.py` / `README.md` / `任务清单_业务层.md`
 - [ ] 业务方法数量 == `docs/API_SPEC.md` 里的接口数量 = **6 个**:`login` / `me` / `create_todo` / `get_todo` / `list_todos` / `delete_todo`(不多不少)
 - [ ] 每个方法都有**参数和返回值**的类型注解
-- [ ] 路径字符串**只出现在 `api/`**,`grep -rn '"/todos\|"/login\|"/users' api_test/api/` 有结果,**在 `testcases/` 下无结果**
+- [ ] 路径字符串**只出现在 `api/`**:`grep -rn '"/todos\|"/login\|"/users' api_test/api/*.py` 有结果,`api_test/testcases/business/*.py` **无结果**
 
 **纪律类**
 
-- [ ] 全仓库 `grep -rn "assert" api_test/api/` **无结果**(本层不 assert)
-- [ ] `grep -rn "raise_for_status\|try:" api_test/api/` **无结果**
+- [ ] `grep -rn "assert" api_test/api/*.py` **无结果**(本层不 assert;`.md` 文档里出现是在讲这条规则,不算)
+- [ ] `grep -rn "raise_for_status\|try:" api_test/api/*.py` **无结果**
 - [ ] 不用业务的默认值兜底:传 `title=""`、`id="abc"` 能原样发出去并拿到 400/404
 
 **行为类**
 
-- [ ] 用例里 `grep -c "requests\|http\|timeout" api_test/testcases/*.py` 三个计数**仍为 0**(`scripts/run_checks.sh` 第 1 步已在查)
-- [ ] `ruff check api_test/` → All checks passed
-- [ ] `pytest -q` 全绿(含原有 10 条 mock 用例 + 新增业务用例)
+- [ ] `api_test/testcases/business/*.py` 里 `requests` / `timeout` / `http` 计数**全为 0**(`scripts/run_checks.sh` 第 1 步已在查,且会 `exit 1`)
+- [ ] `ruff check .` → All checks passed
+- [ ] `pytest -q -m "not network"` 全绿(**必须带标记过滤**,见下)
 - [ ] `python scripts/contract_smoke.py` → 45/45
 - [ ] **故障注入用例走的是 `todo_api.create_todo()`,不是裸 client**
+
+> ### 验收命令的两个坑(都实测踩过)
+>
+> **① `mock/` 与 `business/` 的规则不同,别混着查。**
+> `mock/test_mock_practice.py` 里出现裸路径(`"/todos/1"`)**是对的** —— 它要给 `httpserver` 注册 stub、断言 `httpserver.log`,路径就是被测对象。所以"不出现裸路径/HTTP 细节"这条**只适用于 `business/`**。
+> 同理:在 `testcases/` 全域 grep `"http"` 只会命中 `httpserver` 这个 fixture 名,是假阳性。
+>
+> **② 不要漏 `__pycache__` 和 `.md`。**
+> `grep -rn "assert" api_test/api/` 会命中 `api/README.md` 里的讲解文字和 `api/__pycache__/*.pyc` 二进制;查代码请写 `api_test/api/*.py`。
+>
+> **③ `pytest -q` 会带上 `network` 标记的外网用例。**
+> 本地网络连不上 `jsonplaceholder.typicode.com`(实测 curl 也是 `000`),那条必红。默认跑 `pytest -q -m "not network"`,想验外网契约单独跑 `pytest -q -m network`。
 
 ---
 
