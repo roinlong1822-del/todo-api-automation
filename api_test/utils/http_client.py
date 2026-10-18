@@ -1,4 +1,8 @@
+import logging
+
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class HttpClient:
@@ -27,7 +31,7 @@ class HttpClient:
             {**self.default_headers, **headers},
         )
 
-    def request(self, method: str, path: str, **kwargs):
+    def request(self, method: str, path: str, **kwargs) -> requests.Response:
         url = f"{self.base_url}{path}"
         kwargs.setdefault("timeout", self.timeout)
         # 默认头 < 调用方显式 headers(显式优先)
@@ -35,20 +39,23 @@ class HttpClient:
         if headers:
             kwargs["headers"] = headers
         response = self.session.request(method, url, **kwargs)
-        print(
-            f"[HTTP] {method} {response.url} -> {response.status_code} "
-            f"{response.elapsed.total_seconds():.2f}s"
+        logger.info(
+            "[HTTP] %s %s -> %s %.2fs",
+            method,
+            response.url,
+            response.status_code,
+            response.elapsed.total_seconds()
         )
         return response
 
-    def get(self, path, **kwargs):
+    def get(self, path: str, **kwargs) -> requests.Response:
         return self.request("GET", path, **kwargs)
 
-    def post(self, path, **kwargs):
+    def post(self, path: str, **kwargs) -> requests.Response:
         return self.request("POST", path, **kwargs)
 
-    def put(self, path, **kwargs):
+    def put(self, path: str, **kwargs) -> requests.Response:
         return self.request("PUT", path, **kwargs)
 
-    def delete(self, path, **kwargs):
+    def delete(self, path: str, **kwargs) -> requests.Response:
         return self.request("DELETE", path, **kwargs)
