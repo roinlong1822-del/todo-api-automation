@@ -20,9 +20,15 @@
 | `token` | `tester` 账号的 token(session 级,只登录一次) | 需要 token 字符串本身时 |
 | `todo_api` | **已鉴权**的 `TodoApi` | 绝大多数待办用例 |
 | `anon_todo_api` | **未鉴权**的 `TodoApi` | 401 用例 |
-| `inject_api` | 带 `X-Inject-Bug: write_fail` 的 `TodoApi` | 双端校验 / 故障注入 |
+| `inject_api` | 带 `X-Inject-Bug: write_fail` 的 `TodoApi` | 双端校验 / 故障注入(见 `../../任务清单_双端校验与故障注入.md`) |
+| `db` | 直连数据库的 `Session`(`SessionLocal()`) | **双端校验**:核对库里到底有没有这行;仅用于校验与善后,**不用它造业务数据** |
+| `created_todos` | 登记本用例创建的 id,结束后物理删除 | 避免软删除的 `deleted=1` 行污染种子数据 |
 
 > **别在用例里改夹具的状态**(比如 `auth_api.token = ...`):夹具是 session 级的,改了会污染**后面所有用例** —— 一起跑红、单独跑绿,典型的顺序依赖。
+
+> **双端校验的两条铁律**:
+> ① `pytest` 必须在**仓库根**运行(`sqlite:///./api_server.db` 是相对 cwd 的,换目录会连到空库);
+> ② 服务端写完数据后,再查 DB 前先 `db.expire_all()`(Session 有身份映射缓存,不刷新会读到旧值)。
 
 ## 错误码在哪(最常问)
 

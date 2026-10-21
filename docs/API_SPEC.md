@@ -8,14 +8,14 @@
 
 ## 0. 全局约定
 
-| 项 | 约定 |
-|---|---|
-| Base URL | `http://127.0.0.1:8000`(可用环境变量覆盖) |
-| 请求格式 | `Content-Type: application/json` |
-| 鉴权 | Header `Authorization: Bearer <token>` |
-| 错误响应体 | `{"code": "<机器可读错误码>", "message": "<人类可读说明>"}` |
+| 项        | 约定                                                     |
+| -------- | ------------------------------------------------------ |
+| Base URL | `http://127.0.0.1:8000`(可用环境变量覆盖)                      |
+| 请求格式     | `Content-Type: application/json`                       |
+| 鉴权       | Header `Authorization: Bearer <token>`                 |
+| 错误响应体    | `{"code": "<机器可读错误码>", "message": "<人类可读说明>"}`         |
 | **断言约定** | **断言 `code`(稳定字段),不对 `message` 文案做精确断言**(文案会改,code 不会) |
-| 时间字段 | ISO 8601 UTC,如 `2026-10-08T10:00:00Z` |
+| 时间字段     | ISO 8601 UTC,如 `2026-10-08T10:00:00Z`                  |
 
 **错误码总表**
 
