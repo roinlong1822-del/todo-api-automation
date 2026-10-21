@@ -7,6 +7,9 @@
 3. 地址/超时等环境相关值一律来自 config/,本文件不出现任何硬编码地址
 """
 
+import logging
+from pathlib import Path
+
 import pytest
 
 from api.auth_api import AuthApi
@@ -15,6 +18,46 @@ from config.loader import load_config
 from data.accounts import TESTER
 from data.sample_data import REMOTE
 from utils.http_client import HttpClient
+
+LOG_DIR = Path(__file__).parent / "logs"
+
+# 第三方 logger:它们的访问日志会淹没我们自己的请求日志,统一压到 WARNING。
+NOISY_LOGGERS = ("werkzeug", "urllib3", "http.client")
+
+case_logger = logging.getLogger("testcase")
+
+
+@pytest.fixture(autouse=True)
+def _log_case_boundary(request):
+    """每条用例前后各打一行,让 run.log 变成可回溯的时间线。"""
+    case_logger.info(">>> %s", request.node.name)
+    yield
+    case_logger.info("<<< %s", request.node.name)
+
+
+def pytest_configure(config):
+    """pytest 启动时配一次日志:同时写文件和控制台。"""
+    LOG_DIR.mkdir(exist_ok=True)
+    root = logging.getLogger()
+    if root.handlers:  # 防重复:重复挂 handler 会让每条日志打印多遍
+        return
+    root.setLevel(logging.INFO)
+
+    fmt = logging.Formatter(
+        "%(asctime)s %(levelname)-7s %(name)s | %(message)s", datefmt="%H:%M:%S"
+    )
+    file_handler = logging.FileHandler(LOG_DIR / "run.log", mode="w", encoding="utf-8")
+    file_handler.setFormatter(fmt)
+    console_handler = logging.StreamHandler()  # 默认写 stderr
+    console_handler.setFormatter(fmt)
+
+    root.addHandler(file_handler)
+    root.addHandler(console_handler)
+
+    # mock 用例走 pytest-httpserver(werkzeug),同一个请求会被客户端和服务端各记一遍,
+    # 服务端那行还带 ANSI 颜色码 —— 重复且污染日志文件。
+    for name in NOISY_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 @pytest.fixture(scope="session")

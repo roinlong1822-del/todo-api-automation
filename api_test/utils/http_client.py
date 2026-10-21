@@ -44,7 +44,7 @@ class HttpClient:
             method,
             response.url,
             response.status_code,
-            response.elapsed.total_seconds()
+            response.elapsed.total_seconds(),
         )
         return response
 
