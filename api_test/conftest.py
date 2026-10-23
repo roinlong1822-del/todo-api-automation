@@ -6,7 +6,6 @@
 2. 作用域:无共享可变状态 → `session`;会产生数据变更 → `function`
 3. 地址/超时等环境相关值一律来自 config/,本文件不出现任何硬编码地址
 """
-
 import logging
 from pathlib import Path
 
@@ -14,6 +13,7 @@ import pytest
 
 from api.auth_api import AuthApi
 from api.todo_api import TodoApi
+from api_server.app.database import SessionLocal, engine  # 顶部 import
 from config.loader import load_config
 from data.accounts import TESTER
 from data.sample_data import REMOTE
@@ -118,3 +118,23 @@ def todo_api(server_api, token) -> TodoApi:
 def anon_todo_api(server_api) -> TodoApi:
     """未鉴权通道:401 用例用它。"""
     return TodoApi(server_api, None)
+
+@pytest.fixture(scope="session", autouse=True)
+def _check_db_target():
+    """防呆:sqlite 路径是相对 cwd 的,必须从仓库根运行 pytest。"""
+    if engine.url.get_backend_name() == "sqlite":
+        db_file = Path(engine.url.database).resolve()
+        assert db_file.exists(), (
+            f"数据库文件不存在: {db_file}\n"
+            "双端校验必须在【仓库根】运行 pytest,否则会连到另一个空库。"
+        )
+
+
+@pytest.fixture
+def db():
+    """直连数据库的 Session:只用于**校验与清理**,不拿它造业务数据。"""
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
