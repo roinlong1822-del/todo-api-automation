@@ -14,6 +14,7 @@ import pytest
 from api.auth_api import AuthApi
 from api.todo_api import TodoApi
 from api_server.app.database import SessionLocal, engine  # 顶部 import
+from api_server.app.models import Todo
 from config.loader import load_config
 from data.accounts import TESTER
 from data.sample_data import REMOTE
@@ -138,3 +139,14 @@ def db():
         yield session
     finally:
         session.close()
+
+@pytest.fixture
+def created_todos(db):
+    """登记本用例创建的 id,结束时【物理删除】,保证种子数据不被污染。"""
+    ids: list[int] = []
+    yield ids
+    for todo_id in ids:
+        row = db.query(Todo).filter_by(id=todo_id).first()
+        if row:
+            db.delete(row)
+    db.commit()

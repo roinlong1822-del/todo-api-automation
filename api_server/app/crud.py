@@ -108,4 +108,6 @@ def count_by_status(db: Session, user_id: int) -> dict[str, int]:
     query = db.query(Todo.status, func.count(Todo.id)).filter(Todo.user_id == user_id, Todo.deleted == 0).group_by(Todo.status)
     for status, count in query:
         res[status] = count
+    res["pending"] = res.get("pending", 0)
+    res["done"] = res.get("done", 0)
     return res
