@@ -39,6 +39,10 @@ class TodoApi:
         """DELETE /todos/{id} → 204 无 body / 404"""
         return self.client.delete(f"/todos/{todo_id}", headers=self._headers())
 
+    def get_stats(self) -> requests.Response:
+        """GET /todos/stats → 200 {"pending": n, "done": m}"""
+        return self.client.get("/todos/stats", headers=self._headers())
+
     def _headers(self) -> dict[str, str]:
         """Bearer 前缀是业务知识,留在本层。"""
         return {"Authorization": f"Bearer {self.token}"} if self.token else {}

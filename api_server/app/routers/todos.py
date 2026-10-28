@@ -45,6 +45,16 @@ def list_todos(
     )
 
 
+# ★ 静态路径必须写在参数路径【之前】:Starlette 按注册顺序匹配,
+#   "/todos/{todo_id}" 会把 "stats" 当成 todo_id 吃掉 → 报"无法解析为整数"的 400。
+@router.get("/todos/stats", summary="统计待办数量")
+def get_todo_stats(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return crud.count_by_status(db, current_user.id)   # 已经是 {"pending": n, "done": m}
+
+
 @router.get("/todos/{todo_id}", response_model=TodoOut, summary="查询单条待办")
 def get_todo(
     todo_id: int,
