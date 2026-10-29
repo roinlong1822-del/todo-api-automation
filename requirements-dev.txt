@@ -1,0 +1,11 @@
+# 开发/测试依赖(CI 用这个文件;运行时只需要 api_server/requirements.txt)
+-r api_server/requirements.txt
+
+# 测试框架
+pytest==9.1.1
+pytest_httpserver==1.1.5
+requests==2.34.2
+
+# 配置与工具
+PyYAML==6.0.3
+ruff==0.16.8

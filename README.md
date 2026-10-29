@@ -1,9 +1,24 @@
 # todo-api-automation · 待办服务接口自动化测试框架
 
-> 一个从零搭建的**接口自动化测试框架**(项目 B),配套一个**自建被测服务**(项目 A)。
-> 目的:演示"可控被测对象 + 分层框架 + 数据驱动 + 双端校验 + CI"的完整工程实践。
+<!-- 推到 GitHub 后把下面这行的 <你的用户名>/<仓库名> 换掉,就有了绿勾徽章 -->
+<!-- ![CI](https://github.com/<你的用户名>/todo-api-automation/actions/workflows/ci.yml/badge.svg) -->
 
-**当前状态**:🟡 **阶段 A 骨架完成**(被测服务契约冒烟 43/43 通过,DB 层待实现);阶段 B 待做多环境配置 / yaml 数据驱动 / 业务接口层 / 双端校验 / Allure / CI。
+> 一个从零搭建的**接口自动化测试框架**(项目 B),配套一个**自建被测服务**(项目 A)。
+> 目的:演示"可控被测对象 + 分层框架 + 数据驱动 + **双端校验** + **故障注入** + CI"的完整工程实践。
+
+**当前状态**:🟢 **阶段 A–C 完成** —— 6 接口 + 鉴权 + 统一错误码 + 故障注入;框架四层;14 条业务用例 + 9 条 mock 用例;契约冒烟 45/45;CI 就绪。
+
+**亮点(评审者 30 秒能看完的部分)**
+
+| 能力 | 证据 |
+|---|---|
+| 分层框架,用例里零 HTTP 细节 | `grep -rnE "requests\|timeout\|http" api_test/testcases/business/` → 0;裸路径 → 0 |
+| **双端校验**:不只断言状态码,还直连数据库核对落库 | `testcases/business/test_todos_db.py`(含软删除 `deleted=1` 验证) |
+| **故障注入**证明测试有效 | `testcases/business/test_injection.py`:接口返回 201 但库里没有,双端校验当场抓住 |
+| 用 `xfail(strict=True)` 自证"单端断言会被骗过" | 同上文件第 3 条用例 |
+| 多环境切换 | `APP_ENV=test pytest`;配置缺键直接报错,不静默回落 |
+| 用例幂等 | 跑前/跑后 DB 行数一致(11→11 / 4→4) |
+| mock 与真实服务分离 | `testcases/mock/`(练客户端行为) vs `testcases/business/`(测项目契约) |
 
 ---
 
@@ -46,7 +61,7 @@ bash scripts/run_checks.sh                       # 一键验收(grep + 用例 + 
 | 代码规范 | **ruff 0.16.8**(检查 + 格式化) | 保存时自动跑 |
 | 版本控制 | **Git 2.43 + GitHub** | 公开前过一遍隐私清单 |
 | 被测服务端口 | **8000** | 可用环境变量覆盖 |
-| pytest rootdir | `api_test/`(`pythonpath = .`) | 保证 `from utils...` 可导入 |
+| pytest rootdir | 仓库根(`pytest.ini`),`pythonpath = api_test .` | `api_test` 让用例能 `from api...`;`.` 让用例能 `import api_server...`(双端校验用) |
 
 ### B. 架构确认表
 
@@ -77,9 +92,9 @@ bash scripts/run_checks.sh                       # 一键验收(grep + 用例 + 
 | 横切 | `config/`、`data/` | 环境配置、测试数据 | — |
 
 **红线**:
-- 用例里**不出现** URL、超时字面量、裸路径、`requests`
+- 用例里**不出现** URL、超时字面量、裸路径、`requests`(由 `scripts/run_checks.sh` 第 1 步强制,违规即失败)
 - `utils/` 与 `api/` **不写断言**(只搬事实,判断留给用例)
-- 被测服务与测试框架**互不 import**(只通过 HTTP 交互)
+- 被测服务的业务逻辑**只通过 HTTP 交互**;唯一例外是**双端校验**时用例可**只读** `api_server.app.models` 直连数据库核对数据(不拿它造业务数据)
 
 ### C. 接口契约摘要(详见 [`docs/API_SPEC.md`](docs/API_SPEC.md))
 
@@ -87,11 +102,12 @@ bash scripts/run_checks.sh                       # 一键验收(grep + 用例 + 
 |---|---|---|---|
 | POST | `/login` | 200 `{token, expires_in}` | 400 参数缺失 / 401 密码错 / 403 锁定 |
 | GET | `/users/me` | 200 `{id, username}` | 401 无 token / 过期 |
-| POST | `/todos` | **201** `{id, title, status}` | 400 title 空或超长 / 401 |
-| GET | `/todos/{id}` | 200 todo | 404 不存在 / 400 id 非数字 |
-| GET | `/todos` | 200 `{total, page, items[]}` | 400 size>50 |
-| DELETE | `/todos/{id}` | 204 | 404 不存在 |
-| ★ | 任意写接口 + `X-Inject-Bug: write_fail` | 200(**库里没写**) | 仅非生产环境生效 |
+| POST | `/todos` | **201** `{id, title, priority, status}` | 400 title 空或超长、priority 越界 / 401 |
+| GET | `/todos/{id}` | 200 todo | 404 不存在 / 403 越权 |
+| GET | `/todos` | 200 `{total, page, size, items[]}` | 400 size>50、page<1 |
+| GET | `/todos/stats` | 200 `{pending, done}`(两键始终存在) | 401 |
+| DELETE | `/todos/{id}` | **204** 无 body | 404 不存在(含重复删除) |
+| ★ | 写接口 + `X-Inject-Bug: write_fail` | 201 / 204(**库里没写**) | 仅非生产环境生效,响应头回显 `X-Bug-Injected` |
 
 ### D. 约定
 
@@ -119,14 +135,14 @@ bash scripts/run_checks.sh                       # 一键验收(grep + 用例 + 
 
 **提交前三件事**:① `git status` 看有没有意外文件 ② `git diff --cached` 逐行看 ③ 确认 `.env`、`*.db`、`logs/` 不在暂存区。
 
-### F. 待你确认(打勾后开工)
+### F. 已确认
 
-- [ ] 仓库名用 **`todo-api-automation`**(GitHub 上可随时改)
-- [ ] 提交身份:`user.name=roin`、`user.email=roin@users.noreply.github.com`(⚠️ **占位值,上线前换成你的 GitHub 用户名与 noreply 邮箱**)
-- [ ] 被测服务端口 **8000**
-- [ ] 数据库:项目内用 SQLite;**另做一次 MySQL 可切换验证**(1.5 小时)
-- [ ] `scratch/`、`archive/`、`logs/` 保持本地不入库
-- [ ] 故障注入开关:**Header 为主 + query 为辅,默认关闭,仅非生产生效**
+- [x] 仓库名 **`todo-api-automation`**
+- [x] 提交身份:`user.name=roin`、`user.email=roinlong1822-del@users.noreply.github.com`(**noreply 邮箱**,不暴露真实邮箱)
+- [x] 被测服务端口 **8000**
+- [x] 数据库:项目内用 SQLite;MySQL 可切换已实测("只改 `DATABASE_URL`、代码零改动")
+- [x] `scratch/`、`archive/`、`logs/` 本地不入库(已验证 `git ls-files` 为空)
+- [x] 故障注入开关:**Header 为主 + query 为辅,默认关闭,仅非生产生效**
 
 ---
 
@@ -134,14 +150,15 @@ bash scripts/run_checks.sh                       # 一键验收(grep + 用例 + 
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
-| A | 被测服务 `api_server`(6 接口 + 鉴权 + 故障注入) | 🟡 **骨架完成(43/43 契约冒烟通过);DB 层待学员实现** |
-| B | 框架分层:config / data(yaml) / api 业务层 + 用例迁移 | 🟡 进行中(封装层已完成) |
-| C | logging + 断言封装 + **双端校验** + 数据清理 | ⬜ |
-| D | Allure 报告 | ⬜ |
-| E | GitHub Actions CI + README 完善 | ⬜ |
-| F | (11 月)Docker / Playwright / Locust | ⬜ |
+| A | 被测服务 `api_server`(6 接口 + 鉴权 + 统一错误码 + 故障注入) | ✅ **完成**(契约冒烟 45/45) |
+| B | 框架分层:config 多环境 / `api/` 业务层 / 用例按被测对象分层 | ✅ **完成** |
+| C | logging + **双端校验** + 数据清理 + **故障注入用例** | ✅ **完成**(13 passed + 1 xfailed,用例幂等) |
+| D | Allure 报告 | ⬜ 推迟到 11 月 |
+| E | GitHub Actions CI + README 完善 | 🟡 CI 配置已就绪(`.github/workflows/ci.yml`),待推仓库 |
+| F | (11 月)yaml 数据驱动 / Docker / Playwright / Locust | ⬜ |
 
-**已完成**:`utils/http_client.py`(统一 base_url / 超时 / Session / 请求日志,返回 `Response`)、12 条用例设计清单、确定性 mock 与断言方法论沉淀在 `docs/`。
+**当前用例规模**:业务用例 **14 条**(认证 5 / CRUD 往返 1 / 分页信封 1 / 双端校验 2 / 统计 2 / 故障注入 3)+ mock 练习 **9 条** + 外网契约 1 条(`network` 标记,默认排除)。
+**质量门禁**:`pytest -m "not network"` 全绿 · 契约冒烟 45/45 · `ruff check .` 通过 · 分层检查(裸路径/requests 计数为 0)。
 
 ---
 
