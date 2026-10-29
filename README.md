@@ -1,7 +1,6 @@
 # todo-api-automation · 待办服务接口自动化测试框架
 
-<!-- 推到 GitHub 后把下面这行的 <你的用户名>/<仓库名> 换掉,就有了绿勾徽章 -->
-<!-- ![CI](https://github.com/<你的用户名>/todo-api-automation/actions/workflows/ci.yml/badge.svg) -->
+[![CI](https://github.com/roinlong1822-del/todo-api-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/roinlong1822-del/todo-api-automation/actions/workflows/ci.yml)
 
 > 一个从零搭建的**接口自动化测试框架**(项目 B),配套一个**自建被测服务**(项目 A)。
 > 目的:演示"可控被测对象 + 分层框架 + 数据驱动 + **双端校验** + **故障注入** + CI"的完整工程实践。
