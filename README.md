@@ -22,20 +22,25 @@
 
 ---
 
-## 一、快速开始(全部实现后)
+## 一、快速开始
 
 ```bash
-# 1) 起被测服务
-pip install -r api_server/requirements.txt
-python -m api_server.app.seed                      # 初始化种子数据
-uvicorn api_server.app.main:app --reload --port 8000
+# 1) 装依赖 + 起被测服务(终端 1,保持不关)
+pip install -r requirements-dev.txt      # 运行时 + 测试依赖
+python -m api_server.app.seed            # 初始化种子数据(幂等,可重复跑)
+python -m uvicorn api_server.app.main:app --port 8000 --reload
 # 浏览器打开 http://127.0.0.1:8000/docs 可交互
 
-# 2) 跑测试(在仓库根执行;配置 pytest.ini 在根目录)
-python -m pytest -m "not network" -v             # 本地稳定用例(CI 用这条)
-python -m pytest -v                              # 全量(含外网冒烟)
-python -m pytest api_test/testcases/smoke -v     # 只跑冒烟
-bash scripts/run_checks.sh                       # 一键验收(grep + 用例 + ruff)
+# 2) 跑测试(终端 2,必须在【仓库根】执行 —— sqlite 路径相对 cwd)
+pytest -q -m "not network"               # 本地稳定用例(CI 用这条)
+pytest -q                                # 全量(含外网 network 标记,本机常连不上)
+pytest -q -m network                     # 只跑外网契约冒烟
+pytest api_test/testcases/business -q    # 只跑业务用例
+
+# 3) 三道验收
+bash scripts/run_checks.sh               # 分层检查 + 用例 + ruff(违规即失败)
+python scripts/contract_smoke.py         # 独立契约冒烟 45 项(支持 API_BASE 指向任意实例)
+ruff check .                             # 代码规范
 ```
 
 ---
