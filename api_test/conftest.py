@@ -150,3 +150,8 @@ def created_todos(db):
         if row:
             db.delete(row)
     db.commit()
+
+@pytest.fixture
+def inject_api(server_api, token) -> TodoApi:
+    """带故障注入开关的通道:让写接口"返回成功但不写库"。"""
+    return TodoApi(server_api.with_headers(**{"X-Inject-Bug": "write_fail"}), token)
