@@ -17,7 +17,8 @@
 | 用 `xfail(strict=True)` 自证"单端断言会被骗过" | 同上文件第 3 条用例 |
 | 多环境切换 | `APP_ENV=test pytest`;配置缺键直接报错,不静默回落 |
 | 用例幂等 | 跑前/跑后 DB 行数一致(11→11 / 4→4) |
-| mock 与真实服务分离 | `testcases/mock/`(练客户端行为) vs `testcases/business/`(测项目契约) |
+| mock 与真实服务分离 | `testcases/mock/`(客户端行为 + **造真服务造不出的异常**) vs `testcases/business/`(测项目契约) |
+| **用 mock 造异常场景** | `testcases/mock/test_abnormal.py`:上游 500 不被当成功、上游超时正确抛 `Timeout` |
 
 ---
 
